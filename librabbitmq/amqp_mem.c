@@ -103,6 +103,32 @@ static int record_pool_block(amqp_pool_blocklist_t *x, void *block) {
   return 1;
 }
 
+int in_blocklist(amqp_pool_blocklist_t *x, void *block) {
+  int i;
+
+  for (i = 0; i < x->num_blocks; i++) {
+    if (x->blocklist[i] == block)
+      break;
+  }
+
+  return i;
+}
+
+void amqp_pool_free(amqp_pool_t *pool, void *block, size_t len) {
+  /* traverse the pool->pages and mv to tail of page list */
+  if (len < pool->pagesize) return;
+
+  int idx = in_blocklist(&pool->pages, block);
+  if (idx != pool->pages.num_blocks) {
+    if (idx != pool->next_page) {/* ignore current page */
+      memmove(pool->pages.blocklist[idx], pool->pages.blocklist[idx+1],
+              (pool->pages.num_blocks-idx-1)*sizeof(void *));
+    }
+
+    pool->next_page--;
+  }
+}
+
 void *amqp_pool_alloc(amqp_pool_t *pool, size_t amount) {
   if (amount == 0) {
     return NULL;

@@ -150,6 +150,9 @@ int amqp_destroy_connection(amqp_connection_state_t state) {
 }
 
 static void return_to_idle(amqp_connection_state_t state) {
+  amqp_pool_free(&state->frame_pool, state->inbound_buffer.bytes,
+                 state->inbound_buffer.len);
+
   state->inbound_buffer.bytes = NULL;
   state->inbound_offset = 0;
   state->target_size = HEADER_SIZE;
